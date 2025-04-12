@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Score Counter</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-image:url(https://wallpaperaccess.com/full/6970931.jpg);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Light theme (default) */
+        body.light {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        /* Dark theme */
+        body.dark {
+            background-color: #333;
+            color: #f0f0f0;
+        }
+
+        .page {
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .score-box, .button-box, .extra-box {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        body.dark .score-box, body.dark .button-box, body.dark .extra-box {
+            background-color: #444;
+            border-color: #666;
+        }
+
+        .score-box p {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        body.dark .score-box p {
+            border-color: #888;
+        }
+
+        /* Larger buttons */
+        .button-box button, .extra-box button {
+            padding: 12px;
+            font-size: 1.1rem;
+            border-radius: 6px;
+        }
+
+        /* Larger input box */
+        #totalOvers {
+            padding: 12px;
+            font-size: 1.2rem;
+            height: 50px;
+            border-radius: 6px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+
+        .theme-toggle button {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #555;
+            color: white;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="light flex items-center justify-center">
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <button onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+
+    <!-- First Page: Enter Overs -->
+    <div id="setupPage" class="page flex flex-col items-center justify-center text-center">
+        <div class="score-box">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Cricket Score Counter</h1>
+            <input type="number" id="totalOvers" class="border p-3 rounded w-full mb-6 text-center" min="1" placeholder="Enter total overs">
+            <button id="startMatch" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition duration-300 text-lg w-full">
+                Start Match
+            </button>
+        </div>
+    </div>
+
+    <!-- Second Page: Score Display -->
+    <div id="scorePage" class="page hidden flex flex-col items-center justify-center text-center">
+        <div class="score-box">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Cricket Score</h2>
+            <p class="text-gray-600">Score: <span id="runs">0</span>/<span id="wickets">0</span></p>
+            <p class="text-gray-600">Overs: <span id="overs">0.0</span> / <span id="totalOversDisplay"></span></p>
+        </div>
+        <div class="button-box">
+            <!-- Buttons for Score Updates -->
+            <div class="grid grid-cols-3 gap-4 mb-6 w-full">
+                <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" onclick="updateScore(0)">0</button>
+                <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" onclick="updateScore(1)">1</button>
+                <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" onclick="updateScore(2)">2</button>
+                <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" onclick="updateScore(4)">4</button>
+                <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" onclick="updateScore(6)">6</button>
+                <button class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600" onclick="updateWideBall()">Wide Ball</button>
+            </div>
+        </div>
+        <div class="extra-box">
+            <!-- No Ball and Reset Buttons -->
+            <div class="grid grid-cols-3 gap-4 w-full">
+                <button class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600" onclick="updateWicket()">Wicket</button>
+                <button class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600" onclick="updateNoBall()">No Ball</button>
+                <button id="reset" class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600">Reset Score</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let runs = 0;
+        let wickets = 0;
+        let noBalls = 0;
+        let wideBalls = 0;
+        let currentOver = 0;
+        let balls = 0;
+        let totalOvers = 0;
+
+        document.getElementById('startMatch').addEventListener('click', () => {
+            totalOvers = parseInt(document.getElementById('totalOvers').value) || 0;
+            if (totalOvers > 0) {
+                document.getElementById('totalOversDisplay').textContent = totalOvers;
+                document.getElementById('setupPage').classList.add('hidden');
+                document.getElementById('scorePage').classList.remove('hidden');
+            }
+        });
+
+        function updateScore(run) {
+            runs += run;
+            balls++;
+            if (balls === 6) {
+                currentOver++;
+                balls = 0;
+            }
+            updateDisplay();
+            checkMatchEnd();
+        }
+
+        function updateWicket() {
+            wickets++;
+            balls++;
+            if (balls === 6) {
+                currentOver++;
+                balls = 0;
+            }
+            updateDisplay();
+            checkMatchEnd();
+        }
+
+        function updateNoBall() {
+            runs += 1; // No ball adds 1 run by default
+            noBalls++;
+            updateDisplay();
+        }
+
+        function updateWideBall() {
+            runs += 1; // Wide ball adds 1 run by default
+            wideBalls++;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            document.getElementById('runs').textContent = runs;
+            document.getElementById('wickets').textContent = wickets;
+            document.getElementById('overs').textContent = `${currentOver}.${balls}`.replace('.0', '');
+        }
+
+        function checkMatchEnd() {
+            const totalBalls = totalOvers * 6;
+            if (currentOver >= totalOvers || wickets === 10) {
+                alert('Match Over!');
+                document.getElementById('scorePage').classList.add('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        document.getElementById('reset').addEventListener('click', () => {
+            runs = 0;
+            wickets = 0;
+            noBalls = 0;
+            wideBalls = 0;
+            currentOver = 0;
+            balls = 0;
+            document.getElementById('scorePage').classList.remove('opacity-50', 'pointer-events-none');
+            updateDisplay();
+        });
+
+        function toggleTheme() {
+            const body = document.body;
+            if (body.classList.contains('light')) {
+                body.classList.remove('light');
+                body.classList.add('dark');
+            } else {
+                body.classList.remove('dark');
+                body.classList.add('light');
+            }
+        }
+    </script>
+</body>
+</html>
